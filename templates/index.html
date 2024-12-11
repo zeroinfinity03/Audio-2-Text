@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 to Text Transcription</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#f0f9ff","100":"#e0f2fe","200":"#bae6fd","300":"#7dd3fc","400":"#38bdf8","500":"#0ea5e9","600":"#0284c7","700":"#0369a1","800":"#075985","900":"#0c4a6e","950":"#082f49"}
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .custom-file-input::-webkit-file-upload-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div class="min-h-full p-4 sm:p-6 lg:p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-2xl ring-1 ring-gray-900/5 p-6 sm:p-8">
+                <div class="max-w-xl mx-auto">
+                    <h1 class="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-primary-600 to-primary-400 text-transparent bg-clip-text">MP3 to Text</h1>
+                    <p class="text-center text-gray-600 dark:text-gray-400 mb-8">Convert your audio files to text using AI</p>
+                    
+                    <!-- Upload Form -->
+                    <form action="/" method="post" enctype="multipart/form-data" class="mb-8">
+                        <div class="space-y-6">
+                            <div class="relative group">
+                                <div class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-8 text-center transition-all duration-300 ease-in-out hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-900/10">
+                                    <input type="file" 
+                                           name="audio_file" 
+                                           accept=".mp3,.wav,.m4a,.ogg,.wma,.aac,.flac"
+                                           required
+                                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                           onchange="updateFileName(this)">
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-center">
+                                            <svg class="w-12 h-12 text-primary-500/80 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+                                            </svg>
+                                        </div>
+                                        <div id="file-name" class="text-gray-500 dark:text-gray-400 transition-colors">
+                                            <span class="font-medium">Drop your MP3 file here</span>
+                                            <span class="text-sm">or click to browse</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-3.5 rounded-xl hover:from-primary-700 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-300 font-medium shadow-lg shadow-primary-500/25">
+                                Transcribe Audio
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Error Message -->
+                    {% if error %}
+                    <div class="mb-8 rounded-xl bg-red-50 dark:bg-red-900/30 p-4 text-sm text-red-600 dark:text-red-400 flex items-center backdrop-blur-sm" role="alert">
+                        <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>{{ error }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Add this after the error message section -->
+                    {% if error %}
+                    <div class="mb-8 rounded-xl bg-red-50 dark:bg-red-900/30 p-4">
+                        <div class="text-sm text-red-600 dark:text-red-400">
+                            <p class="font-bold">Error:</p>
+                            <pre class="mt-1 whitespace-pre-wrap">{{ error }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Loading State -->
+                    <div id="loading" class="hidden">
+                        <div class="flex items-center justify-center space-x-3 mb-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-2 border-primary-600 border-t-transparent"></div>
+                            <span class="text-gray-600 dark:text-gray-400">Transcribing your audio...</span>
+                        </div>
+                    </div>
+
+                    <!-- Transcription Result -->
+                    {% if transcription %}
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Transcription Result</h2>
+                            <button onclick="copyTranscription()" 
+                                    class="inline-flex items-center px-3.5 py-2 text-sm font-medium text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <div class="bg-gray-50/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-inner">
+                            <pre id="transcription-text" class="whitespace-pre-wrap text-gray-700 dark:text-gray-300 text-sm">{{ transcription }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check system dark mode preference
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
+        }
+
+        function updateFileName(input) {
+            const fileName = input.files[0]?.name || 'Drop your MP3 file here or click to browse';
+            document.getElementById('file-name').innerHTML = `
+                <span class="font-medium">${fileName}</span>
+                <span class="text-sm block mt-1 text-primary-500">Ready to upload</span>
+            `;
+        }
+
+        function copyTranscription() {
+            const text = document.getElementById('transcription-text').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const button = event.currentTarget;
+                const originalText = button.innerHTML;
+                button.innerHTML = `
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Copied!
+                `;
+                button.classList.remove('text-primary-700', 'bg-primary-50');
+                button.classList.add('text-green-700', 'bg-green-50', 'dark:text-green-400', 'dark:bg-green-900/30');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('text-green-700', 'bg-green-50', 'dark:text-green-400', 'dark:bg-green-900/30');
+                    button.classList.add('text-primary-700', 'bg-primary-50');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // Show loading state when form is submitted
+        document.querySelector('form').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+            document.querySelector('button[type="submit"]').disabled = true;
+        });
+    </script>
+</body>
+</html> 
