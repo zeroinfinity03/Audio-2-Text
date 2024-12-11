@@ -2,6 +2,18 @@
 
 A FastAPI web application that converts various audio formats to text using whisper.cpp, providing efficient CPU-based transcription.
 
+[View on GitHub](https://github.com/zeroinfinity03/Audio-2-Text)
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/zeroinfinity03/Audio-2-Text.git
+cd Audio-2-Text
+
+# Follow installation instructions below
+```
+
 ## Supported Audio Formats
 
 The application supports the following audio formats:
